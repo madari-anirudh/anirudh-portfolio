@@ -4,6 +4,13 @@
   --background: #ffffff;
   --foreground: #171717;
 }
+@theme {
+  /* Override the default sans font with Inter */
+  --font-sans: var(--font-custom-sans), ui-sans-serif, system-ui, sans-serif;
+  
+  /* Override the default mono font with JetBrains Mono */
+  --font-mono: var(--font-custom-mono), ui-monospace, SFMono-Regular, monospace;
+}
 
 @theme inline {
   --color-background: var(--background);

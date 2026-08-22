@@ -89,7 +89,7 @@ function ProCard({
 
 // --- LEETCODE COMPONENT ---
 interface LeetCodeData {
-  status: string;
+  status: "success" | "error";
   totalSolved: number;
   easySolved: number;
   mediumSolved: number;
@@ -105,187 +105,283 @@ function LeetCodeStats({ username }: { username: string }) {
   const [data, setData] = useState<LeetCodeData | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
+    let mounted = true;
+
     async function loadData() {
       try {
         const stats = await getLeetCodeStats(username);
+
         console.log("CLIENT LEETCODE DATA:", stats);
-        // If the server action returns data (either success or our custom error object)
-        if (stats && stats.status) {
+
+        if (mounted && stats?.status === "success") {
           setData(stats);
-        } else {
-          throw new Error("Invalid response from server action");
+        } else if (mounted) {
+          setData({
+            status: "error",
+            totalSolved: 0,
+            easySolved: 0,
+            mediumSolved: 0,
+            hardSolved: 0,
+            totalSubmissions: 0,
+            ranking: 0,
+            streak: 0,
+            badges: [],
+            languages: [],
+          });
         }
-      } catch (err) {
-        // FAILSAFE: If the Vercel server function completely crashes or times out, 
-        // we manually force the fallback UI to show up here on the client.
-        setData({
-          status: "error",
-          totalSolved: 0,
-          easySolved: 0,
-          mediumSolved: 0,
-          hardSolved: 0,
-          totalSubmissions: 0,
-          ranking: 0,
-          streak: 0,
-          badges: [],
-          languages: []
-        });
+      } catch (error) {
+        console.error("CLIENT LEETCODE ERROR:", error);
+
+        if (mounted) {
+          setData({
+            status: "error",
+            totalSolved: 0,
+            easySolved: 0,
+            mediumSolved: 0,
+            hardSolved: 0,
+            totalSubmissions: 0,
+            ranking: 0,
+            streak: 0,
+            badges: [],
+            languages: [],
+          });
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
-    
+
     loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, [username]);
+
+  // -----------------------------
+  // LOADING
+  // -----------------------------
 
   if (loading) {
     return (
-      <div className="w-full h-40 animate-pulse rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
-        <span className="text-sm font-mono text-slate-500">Connecting to LeetCode database...</span>
+      <div className="w-full min-h-[180px] rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-md flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse" />
+          <span className="text-sm font-mono text-slate-500">
+            Connecting to LeetCode...
+          </span>
+        </div>
       </div>
     );
   }
 
-  // Safety fallback if something completely crashed
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
-  // If Cloudflare blocked us, show the Fallback Card so the link is still clickable
+  // -----------------------------
+  // ERROR
+  // -----------------------------
+
   if (data.status === "error") {
     return (
-      <ProCard tilt={false} className="p-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-yellow-500 opacity-50">
-              <path d="M16.102 17.93l-2.697 2.607c-.466.467-1.111.662-1.823.662s-1.357-.195-1.824-.662l-4.332-4.363c-.467-.467-.702-1.15-.702-1.863s.235-1.357.702-1.824l4.319-4.38c.467-.467 1.125-.645 1.837-.645s1.357.195 1.823.662l2.697 2.606c.514.515 1.365.497 1.9-.038.535-.536.553-1.387.039-1.901l-2.609-2.636a5.055 5.055 0 0 0-2.445-1.337l2.467-2.503c.513-.514.498-1.366-.037-1.901-.535-.535-1.387-.552-1.902-.038l-10.1 10.101c-.981.982-1.494 2.337-1.494 3.835 0 1.498.513 2.895 1.494 3.875l4.347 4.361c.981.979 2.337 1.452 3.834 1.452s2.853-.473 3.833-1.452l2.697-2.606c.514-.515.498-1.366-.038-1.901-.535-.535-1.387-.552-1.902-.038z"/>
-            </svg>
-            <h3 className="text-lg font-semibold text-slate-400">LeetCode Profile</h3>
-            <Link 
-              href={`https://leetcode.com/u/${username}`} 
-              target="_blank"
-              className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-mono rounded-md hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
-            >
-              @{username}
-            </Link>
+      <div className="w-full rounded-xl border border-yellow-500/10 bg-slate-900/50 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-300">
+              LeetCode Statistics
+            </h3>
+
+            <p className="mt-1 text-sm font-mono text-slate-500">
+              Live statistics are temporarily unavailable.
+            </p>
           </div>
-          <p className="text-xs font-mono text-slate-500">
-            Live sync temporarily blocked by LeetCode WAF. Click profile to view stats.
-          </p>
+
+          <a
+            href={`https://leetcode.com/u/${username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-fit rounded-md border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs font-mono text-blue-400 hover:bg-blue-500/20 transition-colors"
+          >
+            @{username} ↗
+          </a>
         </div>
-      </ProCard>
+      </div>
     );
   }
 
-  // STANDARD SUCCESS RENDER (Your existing layout exactly as is)
+  // -----------------------------
+  // SUCCESS
+  // -----------------------------
+
   return (
-    <ProCard tilt={false} className="p-6">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
-        
-        {/* Top Left: Header & Core Metrics */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-yellow-500">
-              <path d="M16.102 17.93l-2.697 2.607c-.466.467-1.111.662-1.823.662s-1.357-.195-1.824-.662l-4.332-4.363c-.467-.467-.702-1.15-.702-1.863s.235-1.357.702-1.824l4.319-4.38c.467-.467 1.125-.645 1.837-.645s1.357.195 1.823.662l2.697 2.606c.514.515 1.365.497 1.9-.038.535-.536.553-1.387.039-1.901l-2.609-2.636a5.055 5.055 0 0 0-2.445-1.337l2.467-2.503c.513-.514.498-1.366-.037-1.901-.535-.535-1.387-.552-1.902-.038l-10.1 10.101c-.981.982-1.494 2.337-1.494 3.835 0 1.498.513 2.895 1.494 3.875l4.347 4.361c.981.979 2.337 1.452 3.834 1.452s2.853-.473 3.833-1.452l2.697-2.606c.514-.515.498-1.366-.038-1.901-.535-.535-1.387-.552-1.902-.038z"/>
-            </svg>
-            <h3 className="text-lg font-semibold text-slate-100">LeetCode Statistics</h3>
-            <Link 
-              href={`https://leetcode.com/u/${username}`} 
-              target="_blank"
-              className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-mono rounded-md hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
-            >
-              @{username}
-            </Link>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-mono text-slate-400">
-              Global Rank: <span className="text-slate-200">{(data.ranking).toLocaleString()}</span>
-            </p>
-            <div className="h-3 w-px bg-slate-700 hidden sm:block" />
-            <p className="text-sm font-mono text-orange-400 flex items-center gap-1.5">
-              🔥 {data.streak} Day Streak
-            </p>
-            <div className="h-3 w-px bg-slate-700 hidden sm:block" />
-            <p className="text-sm font-mono text-slate-400 flex items-center gap-1.5">
-              Submissions: <span className="text-slate-200">{data.totalSubmissions.toLocaleString()}</span>
-            </p>
-          </div>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg overflow-hidden"
+    >
+      {/* Top highlight */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent" />
 
-        {/* Top Right: Problem Metrics */}
-        <div className="flex gap-4 sm:gap-8 self-start sm:self-center mt-4 sm:mt-0">
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-white">{data.totalSolved}</span>
-            <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">Solved</span>
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* LeetCode icon */}
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5 fill-yellow-500"
+                aria-hidden="true"
+              >
+                <path d="M16.102 17.93l-2.697 2.607c-.466.467-1.111.662-1.823.662s-1.357-.195-1.824-.662l-4.332-4.363c-.467-.467-.702-1.15-.702-1.863s.235-1.357.702-1.824l4.319-4.38c.467-.467 1.125-.645 1.837-.645s1.357.195 1.823.662l2.697 2.606c.514.515 1.365.497 1.9-.038.535-.536.553-1.387.039-1.901l-2.609-2.636a5.055 5.055 0 0 0-2.445-1.337l2.467-2.503c.513-.514.498-1.366-.037-1.901-.535-.535-1.387-.552-1.902-.038l-10.1 10.101c-.981.982-1.494 2.337-1.494 3.835 0 1.498.513 2.895 1.494 3.875l4.347 4.361c.981.979 2.337 1.452 3.834 1.452s2.853-.473 3.833-1.452l2.697-2.606c.514-.515.498-1.366-.038-1.901-.535-.535-1.387-.552-1.902-.038z" />
+              </svg>
+
+              <h3 className="text-lg font-semibold text-slate-100">
+                LeetCode Statistics
+              </h3>
+
+              <a
+                href={`https://leetcode.com/u/${username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-0.5 rounded-md border border-blue-500/20 bg-blue-500/10 text-xs font-mono text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
+              >
+                @{username}
+              </a>
+            </div>
+
+            {/* Secondary stats */}
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm font-mono text-slate-400">
+                Global Rank:{" "}
+                <span className="text-slate-200">
+                  {data.ranking.toLocaleString()}
+                </span>
+              </p>
+
+              <div className="hidden sm:block h-3 w-px bg-slate-700" />
+
+              <p className="text-sm font-mono text-orange-400">
+                🔥 {data.streak} Day Streak
+              </p>
+
+              <div className="hidden sm:block h-3 w-px bg-slate-700" />
+
+              <p className="text-sm font-mono text-slate-400">
+                Submissions:{" "}
+                <span className="text-slate-200">
+                  {data.totalSubmissions.toLocaleString()}
+                </span>
+              </p>
+            </div>
           </div>
-          <div className="w-px h-12 bg-white/10" />
-          <div className="flex gap-4 text-sm font-mono">
-            <div className="flex flex-col gap-1">
+
+          {/* Problem metrics */}
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <span className="block text-3xl font-bold text-white">
+                {data.totalSolved}
+              </span>
+
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
+                Solved
+              </span>
+            </div>
+
+            <div className="h-12 w-px bg-white/10" />
+
+            <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-sm font-mono">
               <span className="text-teal-400">Easy</span>
-              <span className="text-yellow-400">Med</span>
+              <span className="text-right text-slate-300">
+                {data.easySolved}
+              </span>
+
+              <span className="text-yellow-400">Medium</span>
+              <span className="text-right text-slate-300">
+                {data.mediumSolved}
+              </span>
+
               <span className="text-red-400">Hard</span>
-            </div>
-            <div className="flex flex-col gap-1 text-right text-slate-300">
-              <span>{data.easySolved}</span>
-              <span>{data.mediumSolved}</span>
-              <span>{data.hardSolved}</span>
+              <span className="text-right text-slate-300">
+                {data.hardSolved}
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Area: Grid for Achievements & Languages */}
-      <div className="mt-6 pt-5 border-t border-white/5 w-full grid grid-cols-1 sm:grid-cols-2 gap-6">
-        
-        {/* Achievements Slot */}
-        <div>
-          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Achievements & Badges</h4>
-          {data.badges && data.badges.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {data.badges.map((badge, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-center gap-2 bg-slate-900/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs font-mono text-slate-300 shadow-sm"
-                >
-                  <img 
-                    src={badge.icon.startsWith('http') ? badge.icon : `https://leetcode.com${badge.icon}`} 
-                    alt={badge.name} 
-                    className="w-4 h-4 object-contain drop-shadow-md" 
-                  />
-                  {badge.name}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-slate-900/30 border border-white/5 border-dashed w-fit px-3 py-1.5 rounded-lg text-xs font-mono text-slate-500">
-              <span className="opacity-50">🏆</span>
-              <span>Awaiting Milestones</span>
-            </div>
-          )}
+        {/* Bottom */}
+        <div className="mt-6 pt-5 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Badges */}
+          <div>
+            <h4 className="mb-3 text-[11px] font-mono uppercase tracking-widest text-slate-500">
+              Achievements & Badges
+            </h4>
+
+            {data.badges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {data.badges.map((badge, index) => (
+                  <div
+                    key={`${badge.name}-${index}`}
+                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-900/50 px-2.5 py-1.5 text-xs font-mono text-slate-300"
+                  >
+                    <img
+                      src={
+                        badge.icon.startsWith("http")
+                          ? badge.icon
+                          : `https://leetcode.com${badge.icon}`
+                      }
+                      alt={badge.name}
+                      className="h-4 w-4 object-contain"
+                    />
+
+                    {badge.name}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-fit rounded-lg border border-dashed border-white/5 bg-slate-900/30 px-3 py-1.5 text-xs font-mono text-slate-500">
+                🏆 Awaiting Milestones
+              </div>
+            )}
+          </div>
+
+          {/* Languages */}
+          <div>
+            <h4 className="mb-3 text-[11px] font-mono uppercase tracking-widest text-slate-500">
+              Languages Solved
+            </h4>
+
+            {data.languages.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {data.languages.map((language, index) => (
+                  <div
+                    key={`${language.languageName}-${index}`}
+                    className="flex items-center gap-1.5 rounded-md border border-white/10 bg-slate-900/50 px-2.5 py-1 text-xs font-mono text-slate-300 hover:border-blue-500/30 transition-colors"
+                  >
+                    <span className="text-blue-400">
+                      {language.languageName}
+                    </span>
+
+                    <span className="font-bold text-slate-500">
+                      {language.problemsSolved}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-mono text-slate-500">
+                No language data found
+              </span>
+            )}
+          </div>
         </div>
-
-        {/* Languages Slot */}
-        <div>
-          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Languages Solved</h4>
-          {data.languages && data.languages.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {data.languages.map((lang, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-center gap-1.5 bg-slate-900/50 border border-white/10 px-2.5 py-1 rounded-md text-xs font-mono text-slate-300 transition-colors hover:border-blue-500/30"
-                >
-                  <span className="text-blue-400">{lang.languageName}</span>
-                  <span className="text-slate-500 font-bold">{lang.problemsSolved}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs font-mono text-slate-500">No language data found</span>
-          )}
-        </div>
-
       </div>
-    </ProCard>
+    </motion.div>
   );
 }
 

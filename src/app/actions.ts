@@ -54,9 +54,16 @@ export async function getLeetCodeStats(username: string) {
     // 🚨 THE FIX: If Cloudflare blocks Vercel, DO NOT throw an error. 
     // Just return the fallback data smoothly.
     if (!res.ok) {
-      console.warn(`Blocked by Cloudflare with status: ${res.status}`);
-      return fallbackData;
-    }
+  const body = await res.text();
+
+  console.error("LeetCode request failed:", {
+    status: res.status,
+    statusText: res.statusText,
+    body: body.slice(0, 1000),
+  });
+
+  return fallbackData;
+}
 
     const json = await res.json();
     

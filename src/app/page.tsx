@@ -10,7 +10,7 @@ import {
   useSpring,
 } from "framer-motion";
 import { getLeetCodeStats } from "./actions";
-
+import MobilePortfolio from "../components/MobilePortfolio";
 // --- ANIMATION VARIANTS ---
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -385,7 +385,7 @@ function LeetCodeStats({ username }: { username: string }) {
   );
 }
 
-export default function Home() {
+function DesktopPortfolio() {
   // --- DATA ---
   const projects = [
     {
@@ -747,4 +747,42 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+/*
+ * ============================================================
+ * RESPONSIVE DEVICE SWITCH
+ * ============================================================
+ */
+
+export default function Home() {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkDevice();
+
+    window.addEventListener("resize", checkDevice);
+
+    return () => {
+      window.removeEventListener("resize", checkDevice);
+    };
+  }, []);
+
+  // Prevent desktop/mobile layout from flashing before
+  // the browser knows the viewport width.
+  if (isMobile === null) {
+    return <main className="min-h-screen bg-slate-950" />;
+  }
+
+  // Mobile version
+  if (isMobile) {
+    return <MobilePortfolio />;
+  }
+
+  // Existing desktop version
+  return <DesktopPortfolio />;
 }

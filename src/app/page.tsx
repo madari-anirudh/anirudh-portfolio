@@ -105,13 +105,37 @@ function LeetCodeStats({ username }: { username: string }) {
   const [data, setData] = useState<LeetCodeData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     async function loadData() {
-      const stats = await getLeetCodeStats(username);
-      // We now set data REGARDLESS of success or error, so the card always shows
-      setData(stats);
-      setLoading(false);
+      try {
+        const stats = await getLeetCodeStats(username);
+        
+        // If the server action returns data (either success or our custom error object)
+        if (stats && stats.status) {
+          setData(stats);
+        } else {
+          throw new Error("Invalid response from server action");
+        }
+      } catch (err) {
+        // FAILSAFE: If the Vercel server function completely crashes or times out, 
+        // we manually force the fallback UI to show up here on the client.
+        setData({
+          status: "error",
+          totalSolved: 0,
+          easySolved: 0,
+          mediumSolved: 0,
+          hardSolved: 0,
+          totalSubmissions: 0,
+          ranking: 0,
+          streak: 0,
+          badges: [],
+          languages: []
+        });
+      } finally {
+        setLoading(false);
+      }
     }
+    
     loadData();
   }, [username]);
 

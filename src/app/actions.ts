@@ -1,6 +1,20 @@
 "use server";
 
 export async function getLeetCodeStats(username: string) {
+  // 1. Define our safe fallback data upfront
+  const fallbackData = {
+    status: "error",
+    totalSolved: 0,
+    easySolved: 0,
+    mediumSolved: 0,
+    hardSolved: 0,
+    totalSubmissions: 0,
+    ranking: 0,
+    streak: 0,
+    badges: [],
+    languages: [],
+  };
+
   try {
     const query = `
       query getUserProfile($username: String!) {
@@ -30,24 +44,26 @@ export async function getLeetCodeStats(username: string) {
       headers: {
         "Content-Type": "application/json",
         "Referer": "https://leetcode.com",
-        // These specific headers trick Cloudflare into letting Vercel pass through
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.5",
       },
       body: JSON.stringify({ query, variables: { username } }),
-      // Cache a successful response for 12 hours so we don't trigger rate limits
-      next: { revalidate: 43200 }, 
+      next: { revalidate: 43200 }, // Cache for 12 hours
     });
 
+    // 🚨 THE FIX: If Cloudflare blocks Vercel, DO NOT throw an error. 
+    // Just return the fallback data smoothly.
     if (!res.ok) {
-      throw new Error(`Cloudflare or LeetCode blocked the request: ${res.status}`);
+      console.warn(`Blocked by Cloudflare with status: ${res.status}`);
+      return fallbackData;
     }
 
     const json = await res.json();
     
+    // 🚨 THE FIX: If LeetCode refuses the query, return the fallback data.
     if (json.errors || !json.data?.matchedUser) {
-      throw new Error("GraphQL query failed");
+      console.warn("GraphQL query failed or user not found.");
+      return fallbackData;
     }
 
     const matchedUser = json.data.matchedUser;
@@ -86,6 +102,7 @@ export async function getLeetCodeStats(username: string) {
     const getTotalSubmissions = () => 
       totalStats.find((item: { difficulty: string; submissions: number }) => item.difficulty === "All")?.submissions || 0;
 
+    // Return the actual live data if everything succeeded!
     return {
       status: "success",
       totalSolved: getCount("All"),
@@ -100,19 +117,8 @@ export async function getLeetCodeStats(username: string) {
     };
     
   } catch (error) {
-    console.error("Server Action Error:", error);
-    // If it fails, we still return the object, but with status "error"
-    return {
-      status: "error",
-      totalSolved: 0,
-      easySolved: 0,
-      mediumSolved: 0,
-      hardSolved: 0,
-      totalSubmissions: 0,
-      ranking: 0,
-      streak: 0,
-      badges: [],
-      languages: [],
-    };
+    // 🚨 THE FIX: If the fetch completely times out, intercept it and return the fallback.
+    console.error("Critical Server Action Network Error intercepted.");
+    return fallbackData;
   }
 }

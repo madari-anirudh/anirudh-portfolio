@@ -109,7 +109,7 @@ useEffect(() => {
     async function loadData() {
       try {
         const stats = await getLeetCodeStats(username);
-        
+        console.log("CLIENT LEETCODE DATA:", stats);
         // If the server action returns data (either success or our custom error object)
         if (stats && stats.status) {
           setData(stats);

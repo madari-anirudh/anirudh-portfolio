@@ -108,13 +108,10 @@ function LeetCodeStats({ username }: { username: string }) {
   useEffect(() => {
     async function loadData() {
       const stats = await getLeetCodeStats(username);
-      
-      if (stats && stats.status === "success") {
-        setData(stats);
-      }
+      // We now set data REGARDLESS of success or error, so the card always shows
+      setData(stats);
       setLoading(false);
     }
-    
     loadData();
   }, [username]);
 
@@ -126,8 +123,36 @@ function LeetCodeStats({ username }: { username: string }) {
     );
   }
 
+  // Safety fallback if something completely crashed
   if (!data) return null;
 
+  // If Cloudflare blocked us, show the Fallback Card so the link is still clickable
+  if (data.status === "error") {
+    return (
+      <ProCard tilt={false} className="p-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-yellow-500 opacity-50">
+              <path d="M16.102 17.93l-2.697 2.607c-.466.467-1.111.662-1.823.662s-1.357-.195-1.824-.662l-4.332-4.363c-.467-.467-.702-1.15-.702-1.863s.235-1.357.702-1.824l4.319-4.38c.467-.467 1.125-.645 1.837-.645s1.357.195 1.823.662l2.697 2.606c.514.515 1.365.497 1.9-.038.535-.536.553-1.387.039-1.901l-2.609-2.636a5.055 5.055 0 0 0-2.445-1.337l2.467-2.503c.513-.514.498-1.366-.037-1.901-.535-.535-1.387-.552-1.902-.038l-10.1 10.101c-.981.982-1.494 2.337-1.494 3.835 0 1.498.513 2.895 1.494 3.875l4.347 4.361c.981.979 2.337 1.452 3.834 1.452s2.853-.473 3.833-1.452l2.697-2.606c.514-.515.498-1.366-.038-1.901-.535-.535-1.387-.552-1.902-.038z"/>
+            </svg>
+            <h3 className="text-lg font-semibold text-slate-400">LeetCode Profile</h3>
+            <Link 
+              href={`https://leetcode.com/u/${username}`} 
+              target="_blank"
+              className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-mono rounded-md hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
+            >
+              @{username}
+            </Link>
+          </div>
+          <p className="text-xs font-mono text-slate-500">
+            Live sync temporarily blocked by LeetCode WAF. Click profile to view stats.
+          </p>
+        </div>
+      </ProCard>
+    );
+  }
+
+  // STANDARD SUCCESS RENDER (Your existing layout exactly as is)
   return (
     <ProCard tilt={false} className="p-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">

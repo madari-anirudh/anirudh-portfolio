@@ -2,7 +2,6 @@
 
 export async function getLeetCodeStats(username: string) {
   try {
-    // Added languageProblemCount to fetch language-specific solved metrics
     const query = `
       query getUserProfile($username: String!) {
         matchedUser(username: $username) {
@@ -31,29 +30,30 @@ export async function getLeetCodeStats(username: string) {
       headers: {
         "Content-Type": "application/json",
         "Referer": "https://leetcode.com",
+        // These specific headers trick Cloudflare into letting Vercel pass through
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.5",
       },
       body: JSON.stringify({ query, variables: { username } }),
-      next: { revalidate: 3600 }, 
+      // Cache a successful response for 12 hours so we don't trigger rate limits
+      next: { revalidate: 43200 }, 
     });
 
     if (!res.ok) {
-      throw new Error(`LeetCode Official API returned status: ${res.status}`);
+      throw new Error(`Cloudflare or LeetCode blocked the request: ${res.status}`);
     }
 
     const json = await res.json();
     
     if (json.errors || !json.data?.matchedUser) {
-      throw new Error("User not found or GraphQL query failed");
+      throw new Error("GraphQL query failed");
     }
 
     const matchedUser = json.data.matchedUser;
     const stats = matchedUser.submitStats.acSubmissionNum;
     const totalStats = matchedUser.submitStats.totalSubmissionNum;
-    const ranking = matchedUser.profile.ranking;
-    const badges = matchedUser.badges || [];
-    const languages = matchedUser.languageProblemCount || []; // Extracted languages
-
-    // --- ACCURATE STREAK CALCULATION ---
+    
     let activeStreak = 0;
     if (matchedUser.userCalendar?.submissionCalendar) {
       const calendarJson = JSON.parse(matchedUser.userCalendar.submissionCalendar);
@@ -83,7 +83,6 @@ export async function getLeetCodeStats(username: string) {
 
     const getCount = (diff: string) => 
       stats.find((item: { difficulty: string; count: number }) => item.difficulty === diff)?.count || 0;
-
     const getTotalSubmissions = () => 
       totalStats.find((item: { difficulty: string; submissions: number }) => item.difficulty === "All")?.submissions || 0;
 
@@ -94,14 +93,15 @@ export async function getLeetCodeStats(username: string) {
       mediumSolved: getCount("Medium"),
       hardSolved: getCount("Hard"),
       totalSubmissions: getTotalSubmissions(),
-      ranking: ranking,
+      ranking: matchedUser.profile.ranking,
       streak: activeStreak,
-      badges: badges,
-      languages: languages, // Passed to the frontend
+      badges: matchedUser.badges || [],
+      languages: matchedUser.languageProblemCount || [],
     };
     
   } catch (error) {
-    console.error("Server Action Error fetching LeetCode stats:", error);
+    console.error("Server Action Error:", error);
+    // If it fails, we still return the object, but with status "error"
     return {
       status: "error",
       totalSolved: 0,

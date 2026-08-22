@@ -9,7 +9,7 @@ import {
   useTransform,
   useSpring,
 } from "framer-motion";
-import { getLeetCodeStats } from "./actions";
+
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp: Variants = {
@@ -88,48 +88,86 @@ function ProCard({
 }
 
 // --- LEETCODE COMPONENT ---
+// --- LEETCODE COMPONENT ---
 interface LeetCodeData {
   status: string;
   totalSolved: number;
   easySolved: number;
   mediumSolved: number;
   hardSolved: number;
-  totalSubmissions: number;
+  acceptanceRate: number;
   ranking: number;
+  contributionPoints: number;
+  reputation: number;
   streak: number;
-  badges: { name: string; icon: string }[];
-  languages: { languageName: string; problemsSolved: number }[];
 }
 
 function LeetCodeStats({ username }: { username: string }) {
   const [data, setData] = useState<LeetCodeData | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     async function loadData() {
       try {
-        const stats = await getLeetCodeStats(username);
+        // 🚀 ESCAPE HATCH: Fetching directly from the client browser using a public proxy.
+        // This completely bypasses Vercel's datacenter IPs, stopping Cloudflare blocks.
+        const res = await fetch(`https://leetcode-stats-api.herokuapp.com/${username}`);
+        const json = await res.json();
         
-        // If the server action returns data (either success or our custom error object)
-        if (stats && stats.status) {
-          setData(stats);
+        if (json.status === "success") {
+          // Calculate streak from the returned calendar
+          let activeStreak = 0;
+          if (json.submissionCalendar) {
+            const timestamps = Object.keys(json.submissionCalendar).map(Number).sort((a, b) => b - a);
+            if (timestamps.length > 0) {
+              let latest = timestamps[0];
+              const currentTime = Math.floor(Date.now() / 1000);
+              const SECONDS_IN_DAY = 86400;
+              
+              if (currentTime - latest < SECONDS_IN_DAY * 2.5) {
+                activeStreak = 1;
+                for (let i = 1; i < timestamps.length; i++) {
+                  const diff = latest - timestamps[i];
+                  if (diff === SECONDS_IN_DAY) {
+                    activeStreak++;
+                    latest = timestamps[i];
+                  } else if (diff < SECONDS_IN_DAY) {
+                    continue;
+                  } else {
+                    break; 
+                  }
+                }
+              }
+            }
+          }
+
+          setData({
+            status: "success",
+            totalSolved: json.totalSolved,
+            easySolved: json.easySolved,
+            mediumSolved: json.mediumSolved,
+            hardSolved: json.hardSolved,
+            acceptanceRate: json.acceptanceRate,
+            ranking: json.ranking,
+            contributionPoints: json.contributionPoints,
+            reputation: json.reputation,
+            streak: activeStreak,
+          });
         } else {
-          throw new Error("Invalid response from server action");
+          throw new Error("API Proxy failed to retrieve user");
         }
       } catch (err) {
-        // FAILSAFE: If the Vercel server function completely crashes or times out, 
-        // we manually force the fallback UI to show up here on the client.
         setData({
           status: "error",
           totalSolved: 0,
           easySolved: 0,
           mediumSolved: 0,
           hardSolved: 0,
-          totalSubmissions: 0,
+          acceptanceRate: 0,
           ranking: 0,
+          contributionPoints: 0,
+          reputation: 0,
           streak: 0,
-          badges: [],
-          languages: []
         });
       } finally {
         setLoading(false);
@@ -142,15 +180,13 @@ useEffect(() => {
   if (loading) {
     return (
       <div className="w-full h-40 animate-pulse rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
-        <span className="text-sm font-mono text-slate-500">Connecting to LeetCode database...</span>
+        <span className="text-sm font-mono text-slate-500">Connecting to LeetCode API...</span>
       </div>
     );
   }
 
-  // Safety fallback if something completely crashed
   if (!data) return null;
 
-  // If Cloudflare blocked us, show the Fallback Card so the link is still clickable
   if (data.status === "error") {
     return (
       <ProCard tilt={false} className="p-6">
@@ -169,14 +205,13 @@ useEffect(() => {
             </Link>
           </div>
           <p className="text-xs font-mono text-slate-500">
-            Live sync temporarily blocked by LeetCode WAF. Click profile to view stats.
+            Live sync temporarily unavailable. Click profile to view stats.
           </p>
         </div>
       </ProCard>
     );
   }
 
-  // STANDARD SUCCESS RENDER (Your existing layout exactly as is)
   return (
     <ProCard tilt={false} className="p-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
@@ -207,7 +242,7 @@ useEffect(() => {
             </p>
             <div className="h-3 w-px bg-slate-700 hidden sm:block" />
             <p className="text-sm font-mono text-slate-400 flex items-center gap-1.5">
-              Submissions: <span className="text-slate-200">{data.totalSubmissions.toLocaleString()}</span>
+              Accuracy: <span className="text-slate-200">{data.acceptanceRate}%</span>
             </p>
           </div>
         </div>
@@ -234,54 +269,29 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Bottom Area: Grid for Achievements & Languages */}
+      {/* Bottom Area: Metrics & Standing */}
       <div className="mt-6 pt-5 border-t border-white/5 w-full grid grid-cols-1 sm:grid-cols-2 gap-6">
         
-        {/* Achievements Slot */}
+        {/* Platform Standing */}
         <div>
-          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Achievements & Badges</h4>
-          {data.badges && data.badges.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {data.badges.map((badge, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-center gap-2 bg-slate-900/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs font-mono text-slate-300 shadow-sm"
-                >
-                  <img 
-                    src={badge.icon.startsWith('http') ? badge.icon : `https://leetcode.com${badge.icon}`} 
-                    alt={badge.name} 
-                    className="w-4 h-4 object-contain drop-shadow-md" 
-                  />
-                  {badge.name}
-                </div>
-              ))}
+          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Platform Standing</h4>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 bg-slate-900/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs font-mono text-slate-300 shadow-sm">
+              <span className="opacity-70">⭐</span> Contribution: {data.contributionPoints}
             </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-slate-900/30 border border-white/5 border-dashed w-fit px-3 py-1.5 rounded-lg text-xs font-mono text-slate-500">
-              <span className="opacity-50">🏆</span>
-              <span>Awaiting Milestones</span>
+            <div className="flex items-center gap-2 bg-slate-900/50 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs font-mono text-slate-300 shadow-sm">
+              <span className="opacity-70">🎯</span> Reputation: {data.reputation}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Languages Slot */}
+        {/* Global Accuracy */}
         <div>
-          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Languages Solved</h4>
-          {data.languages && data.languages.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {data.languages.map((lang, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-center gap-1.5 bg-slate-900/50 border border-white/10 px-2.5 py-1 rounded-md text-xs font-mono text-slate-300 transition-colors hover:border-blue-500/30"
-                >
-                  <span className="text-blue-400">{lang.languageName}</span>
-                  <span className="text-slate-500 font-bold">{lang.problemsSolved}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs font-mono text-slate-500">No language data found</span>
-          )}
+          <h4 className="text-[11px] font-mono text-slate-500 mb-3 uppercase tracking-widest">Global Accuracy</h4>
+          <div className="flex items-center gap-2 bg-slate-900/50 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 w-fit">
+            <span className="text-blue-400">Acceptance Rate</span>
+            <span className="text-slate-200 font-bold">{data.acceptanceRate}%</span>
+          </div>
         </div>
 
       </div>

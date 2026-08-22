@@ -53,25 +53,30 @@ export async function getLeetCodeStats(username: string) {
 
     // 🚨 THE FIX: If Cloudflare blocks Vercel, DO NOT throw an error. 
     // Just return the fallback data smoothly.
-    if (!res.ok) {
-  const body = await res.text();
+   if (!res.ok) {
+  const errorBody = await res.text();
 
-  console.error("LeetCode request failed:", {
+  console.error("LEETCODE HTTP ERROR", {
     status: res.status,
     statusText: res.statusText,
-    body: body.slice(0, 1000),
+    body: errorBody.substring(0, 1000),
   });
 
   return fallbackData;
 }
 
     const json = await res.json();
-    
-    // 🚨 THE FIX: If LeetCode refuses the query, return the fallback data.
-    if (json.errors || !json.data?.matchedUser) {
-      console.warn("GraphQL query failed or user not found.");
-      return fallbackData;
-    }
+
+console.log("LEETCODE GRAPHQL RESPONSE", {
+  hasData: !!json.data,
+  hasMatchedUser: !!json.data?.matchedUser,
+  errors: json.errors || null,
+});
+
+if (json.errors || !json.data?.matchedUser) {
+  console.error("LEETCODE GRAPHQL ERROR", json.errors);
+  return fallbackData;
+}
 
     const matchedUser = json.data.matchedUser;
     const stats = matchedUser.submitStats.acSubmissionNum;
@@ -124,8 +129,7 @@ export async function getLeetCodeStats(username: string) {
     };
     
   } catch (error) {
-    // 🚨 THE FIX: If the fetch completely times out, intercept it and return the fallback.
-    console.error("Critical Server Action Network Error intercepted.");
-    return fallbackData;
-  }
+  console.error("LEETCODE SERVER ACTION ERROR", error);
+  return fallbackData;
+}
 }

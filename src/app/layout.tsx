@@ -23,12 +23,12 @@ export const metadata: Metadata = {
   authors: [{ name: "Madari Anirudh" }],
   
   // Important: Uncomment this line and add your actual Vercel/Custom domain once deployed
-  // metadataBase: new URL("https://your-production-domain.com"), 
+   metadataBase: new URL("https://anirudh-portfolio-beta.vercel.app/"), 
 
   openGraph: {
     title: "Madari Anirudh | Software & AI Engineer",
     description: "Specializing in high-performance web systems, full-stack applications, and intelligent AI architectures.",
-    url: "https://your-production-domain.com", // Replace with your actual deployed URL
+    url: "https://anirudh-portfolio-beta.vercel.app/", // Replace with your actual deployed URL
     siteName: "Madari Anirudh Portfolio",
     locale: "en_US",
     type: "website",

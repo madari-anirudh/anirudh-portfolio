@@ -441,11 +441,10 @@ function SkillsMobile() {
         const isOpen = open === index;
 
         return (
-          <motion.div
-            key={category.title}
-            layout
-            className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/50"
-          >
+          <div
+  key={category.title}
+  className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/50"
+>
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : index)}
@@ -492,7 +491,7 @@ function SkillsMobile() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         );
       })}
     </div>
@@ -509,13 +508,7 @@ function ProjectCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ duration: 0.45 }}
-      className="min-w-[88%] snap-center"
-    >
+    <div className="min-w-[88%] snap-center">
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">
         {/* Browser header */}
         <div className="flex items-center justify-between border-b border-white/5 bg-slate-950/60 px-4 py-3">
@@ -647,7 +640,7 @@ function ProjectCard({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -747,7 +740,7 @@ export default function MobilePortfolio() {
             className="flex items-center gap-2"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-xs font-bold text-blue-400">
-              DD
+              MA
             </span>
 
             <span className="text-xs font-semibold tracking-wide text-slate-300">
@@ -806,6 +799,9 @@ export default function MobilePortfolio() {
             </div>
 
             <div className="mt-5 flex items-center gap-5 text-[11px] font-mono text-slate-500">
+              <a href="tel:+919618562368" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
+               Phone
+            </a>
               <a
                 href="https://github.com/madari-anirudh"
                 target="_blank"

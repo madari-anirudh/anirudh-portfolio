@@ -393,18 +393,14 @@ function DesktopPortfolio() {
       description:
         "A real-time 3D orbital visualization platform tracking active satellites and high-risk orbital debris fields using ephemeris data.",
       tech: ["React.js", "Three.js", "Node.js", "Satellite.js"],
-      // Converted Space Debris to a multi-module architecture
+     
       modules: [
         { 
           name: "Web Interface", 
-          github: "https://github.com/madari-anirudh/space-debris-tracker", 
-          live: "https://space-debris-tracker1.netlify.app" // Replace with your live Vercel/Netlify URL when ready
-        },
-        { 
-          name: "Backend API", 
-          github: "#", 
-          live: "#" // Replace with your live Render/Heroku URL when ready
+          github: "https://github.com/madari-anirudh/Space_Debries_Tracker", 
+          live: "https://space-debries-tracker.vercel.app/"
         }
+        
       ]
     },
     {

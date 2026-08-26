@@ -42,8 +42,8 @@ const projects: Project[] = [
       {
         name: "Web Interface",
         github:
-          "https://github.com/madari-anirudh/space-debris-tracker",
-        live: "https://space-debris-tracker1.netlify.app",
+          "https://github.com/madari-anirudh/Space_Debries_Tracker",
+        live: "https://space-debries-tracker.vercel.app/",
       },
       {
         name: "Backend API",

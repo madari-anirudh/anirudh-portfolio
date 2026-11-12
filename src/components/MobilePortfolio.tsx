@@ -1,8 +1,17 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLeetCodeStats } from "../app/actions";
+import {
+  projects,
+  skillCategories,
+  education,
+  personalInfo,
+  type Project,
+} from "../data/portfolio";
 
 interface LeetCodeData {
   status: "success" | "error";
@@ -16,152 +25,6 @@ interface LeetCodeData {
   badges: { name: string; icon: string }[];
   languages: { languageName: string; problemsSolved: number }[];
 }
-
-interface ProjectModule {
-  name: string;
-  github: string;
-  live: string;
-}
-
-interface Project {
-  title: string;
-  description: string;
-  tech: string[];
-  modules?: ProjectModule[];
-  github?: string;
-  live?: string;
-}
-
-const projects: Project[] = [
-  {
-    title: "Space Debris Tracker",
-    description:
-      "A real-time 3D orbital visualization platform tracking active satellites and high-risk orbital debris fields using ephemeris data.",
-    tech: ["React.js", "Three.js", "Node.js", "Satellite.js"],
-    modules: [
-      {
-        name: "Web Interface",
-        github:
-          "https://github.com/madari-anirudh/Space_Debries_Tracker",
-        live: "https://space-debries-tracker.vercel.app/",
-      },
-      {
-        name: "Backend API",
-        github: "#",
-        live: "#",
-      },
-    ],
-  },
-  {
-    title: "Lost & Found System",
-    description:
-      "A distributed tracking infrastructure facilitating item verification, real-time status logging, and secure recovery protocols across multiple client interfaces.",
-    tech: ["Android Studio", "React.js", "Node.js", "MongoDB"],
-    modules: [
-      {
-        name: "Android App",
-        github:
-          "https://github.com/madari-anirudh/lost-and-found-app",
-        live:
-          "https://github.com/madari-anirudh/lost-and-found-app/releases/download/v1.1/lostandfound.V1.1.apk",
-      },
-      {
-        name: "Admin Dashboard",
-        github:
-          "https://github.com/madari-anirudh/lost-found-admin",
-        live: "https://lost-found-admin-delta.vercel.app/",
-      },
-      {
-        name: "Backend Server",
-        github:
-          "https://github.com/madari-anirudh/lost-found-backend",
-        live: "https://lost-found-api-q597.onrender.com/",
-      },
-    ],
-  },
-  {
-    title: "Procto",
-    description:
-      "An AI-powered Android virtual assistant with secure authentication, context streaming, and voice command parsing.",
-    tech: ["React", "Firebase", "Gen AI", "JWT"],
-    github:
-      "https://github.com/madari-anirudh/procto-gemini-api",
-    live: "#",
-  },
-];
-
-const skillCategories = [
-  {
-    title: "Core & Languages",
-    short: "Languages",
-    skills: [
-      "Java",
-      "Python",
-      "C",
-      "JavaScript",
-      "SQL",
-      "Data Structures",
-      "OOP Architecture",
-    ],
-  },
-  {
-    title: "Full-Stack Development",
-    short: "Full-Stack",
-    skills: [
-      "React.js",
-      "Node.js",
-      "Express.js",
-      "Next.js",
-      "REST APIs",
-      "Three.js",
-    ],
-  },
-  {
-    title: "Databases & Cloud",
-    short: "Cloud",
-    skills: [
-      "MongoDB",
-      "AWS",
-      "Firebase",
-      "JWT Auth",
-      "Cloudinary",
-      "Docker",
-    ],
-  },
-  {
-    title: "Tooling & Machine Learning",
-    short: "AI & Tools",
-    skills: [
-      "Generative AI",
-      "Git",
-      "Android SDK",
-      "Postman",
-      "Vercel",
-      "Linux",
-    ],
-  },
-];
-
-const education = [
-  {
-    institution: "Teerthanker Mahaveer University",
-    degree: "B.Tech in CSE (AI & ML)",
-    duration: "2024 – 2028",
-    details: "Undergraduate Program",
-  },
-  {
-    institution: "Sri Chaitanya Junior College",
-    degree: "Intermediate · Class XII",
-    duration: "2022 – 2024",
-    details: "Score: 97%",
-  },
-  {
-    institution: "MJPTBCWREIS",
-    degree: "Secondary School Certificate",
-    duration: "2022",
-    details: "GPA: 9.3 / 10.0",
-  },
-];
 
 function SectionTitle({
   eyebrow,
@@ -506,22 +369,60 @@ function ProjectCard({
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!project.caseStudyUrl) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("a") || target.closest("button")) return;
+    router.push(project.caseStudyUrl);
+  };
 
   return (
     <div className="min-w-[88%] snap-center">
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">
-        {/* Browser header */}
-        <div className="flex items-center justify-between border-b border-white/5 bg-slate-950/60 px-4 py-3">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-red-500/50" />
-            <span className="h-2 w-2 rounded-full bg-yellow-500/50" />
-            <span className="h-2 w-2 rounded-full bg-green-500/50" />
-          </div>
+      <div
+        onClick={handleCardClick}
+        className={`overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 transition-all ${
+          project.caseStudyUrl
+            ? "cursor-pointer hover:border-blue-500/40 active:scale-[0.99]"
+            : ""
+        }`}
+      >
+        {/* Browser header / tab */}
+        {project.caseStudyUrl ? (
+          <Link
+            href={project.caseStudyUrl}
+            className="flex items-center justify-between border-b border-white/10 bg-slate-950/80 px-4 py-3 hover:bg-blue-950/30 transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500/80" />
+                <span className="h-2 w-2 rounded-full bg-yellow-500/80" />
+                <span className="h-2 w-2 rounded-full bg-green-500/80" />
+              </div>
+              <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 flex items-center gap-1">
+                <span>tab:</span>
+                <span className="text-white font-semibold">{project.id}.page</span>
+              </span>
+            </div>
 
-          <span className="text-[9px] font-mono text-slate-600">
-            project/{String(index + 1).padStart(2, "0")}
-          </span>
-        </div>
+            <span className="text-[10px] font-mono text-blue-400 group-hover:text-blue-300">
+              Open Page ↗
+            </span>
+          </Link>
+        ) : (
+          <div className="flex items-center justify-between border-b border-white/5 bg-slate-950/60 px-4 py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-red-500/50" />
+              <span className="h-2 w-2 rounded-full bg-yellow-500/50" />
+              <span className="h-2 w-2 rounded-full bg-green-500/50" />
+            </div>
+
+            <span className="text-[9px] font-mono text-slate-600">
+              project/{String(index + 1).padStart(2, "0")}
+            </span>
+          </div>
+        )}
 
         <div className="p-5">
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-blue-400">
@@ -529,7 +430,17 @@ function ProjectCard({
           </p>
 
           <h3 className="mt-2 text-xl font-bold text-white">
-            {project.title}
+            {project.caseStudyUrl ? (
+              <Link
+                href={project.caseStudyUrl}
+                className="flex items-center justify-between gap-2 hover:text-blue-400 transition-colors"
+              >
+                <span>{project.title}</span>
+                <span className="text-xs font-mono text-blue-400">Open ↗</span>
+              </Link>
+            ) : (
+              project.title
+            )}
           </h3>
 
           <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
@@ -587,6 +498,7 @@ function ProjectCard({
                               href={module.github}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="text-slate-400"
                             >
                               Source ↗
@@ -598,6 +510,7 @@ function ProjectCard({
                               href={module.live}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="text-blue-400"
                             >
                               Live ↗
@@ -620,6 +533,7 @@ function ProjectCard({
                   href={project.github}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-mono text-slate-300"
                 >
                   Source ↗
@@ -631,12 +545,22 @@ function ProjectCard({
                   href={project.live}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-[10px] font-mono text-blue-400"
                 >
                   Live ↗
                 </a>
               )}
             </div>
+          )}
+
+          {project.caseStudyUrl && (
+            <Link
+              href={project.caseStudyUrl}
+              className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-xs font-mono font-medium text-blue-300 hover:bg-blue-500/20 hover:text-white transition-all w-full"
+            >
+              <span>Tap to Open Case Study & AI Hub →</span>
+            </Link>
           )}
         </div>
       </div>
@@ -683,40 +607,39 @@ export default function MobilePortfolio() {
   const [activeSection, setActiveSection] = useState("home");
 
   useEffect(() => {
-    const sections = ["home", "skills", "projects", "education"];
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-        if (visible[0]) {
-          setActiveSection(visible[0].target.id);
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 120;
+      const sections = ["home", "leetcode", "skills", "projects", "education", "contact"];
+      let current = "home";
+      for (const id of sections) {
+        const el = document.getElementById(id);
+        if (el && scrollPosition >= el.offsetTop) {
+          current = id;
         }
-      },
-      {
-        rootMargin: "-20% 0px -65% 0px",
-        threshold: [0.1, 0.25, 0.5],
       }
-    );
-
-    sections.forEach((id) => {
-      const element = document.getElementById(id);
-
-      if (element) {
-        observer.observe(element);
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 50
+      ) {
+        current = "contact";
       }
-    });
+      setActiveSection(current);
+    };
 
-    return () => observer.disconnect();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      const yOffset = -70;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
   };
 
   return (
@@ -744,7 +667,7 @@ export default function MobilePortfolio() {
             </span>
 
             <span className="text-xs font-semibold tracking-wide text-slate-300">
-              Madari Anirudh
+              {personalInfo.name}
             </span>
           </button>
 
@@ -775,14 +698,17 @@ export default function MobilePortfolio() {
               <span className="text-slate-500">Anirudh.</span>
             </h1>
 
-            <p className="mt-5 text-sm leading-6 text-slate-400">
-              Building high-performance web systems, full-stack applications,
-              and intelligent AI architectures.
+            <p className="mt-2 text-xs font-mono uppercase tracking-wider text-blue-400">
+              {personalInfo.headline}
+            </p>
+
+            <p className="mt-4 text-xs leading-relaxed text-slate-300">
+              {personalInfo.shortBio}
             </p>
 
             <div className="mt-7 grid grid-cols-2 gap-2.5">
               <a
-                href="/resume.pdf"
+                href={personalInfo.resumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-xs font-semibold text-white shadow-lg shadow-blue-900/20 active:scale-[0.98]"
@@ -791,7 +717,7 @@ export default function MobilePortfolio() {
               </a>
 
               <a
-                href="mailto:anirudhmahendra2006@gmail.com"
+                href={`mailto:${personalInfo.email}`}
                 className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold text-slate-300 active:scale-[0.98]"
               >
                 Email Me
@@ -801,7 +727,7 @@ export default function MobilePortfolio() {
             <div className="mt-5 flex items-center gap-5 text-[11px] font-mono text-slate-500">
               <a href="tel:+919618562368" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
                Phone
-            </a>
+              </a>
               <a
                 href="https://github.com/madari-anirudh"
                 target="_blank"
@@ -829,11 +755,53 @@ export default function MobilePortfolio() {
                 LeetCode ↗
               </a>
             </div>
+
+            {/* INFORMATIVE MOBILE ABOUT CARD */}
+            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-blue-400">
+                  Engineering Profile
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {personalInfo.location}
+                </span>
+              </div>
+
+              <div className="mt-3.5 space-y-3 text-xs leading-relaxed text-slate-300">
+                {personalInfo.aboutParagraphs.map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+              </div>
+
+              {/* 4 Stats Grid */}
+              <div className="mt-4 grid grid-cols-2 gap-2 pt-3 border-t border-white/5">
+                {personalInfo.statsSummary.map((stat, i) => (
+                  <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-2.5">
+                    <span className="block text-base font-bold text-white font-mono">{stat.value}</span>
+                    <span className="text-[10px] text-blue-400 font-semibold">{stat.label}</span>
+                    <span className="block text-[9px] text-slate-500">{stat.detail}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Key Highlights */}
+              <div className="mt-4 space-y-2 pt-3 border-t border-white/5">
+                {personalInfo.keyHighlights.map((highlight, i) => (
+                  <div key={i} className="flex items-start gap-2 text-[11px]">
+                    <span className="text-xs select-none">{highlight.icon}</span>
+                    <div>
+                      <span className="text-slate-500 font-mono text-[9px] block">{highlight.label}</span>
+                      <span className="text-slate-200">{highlight.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
         </section>
 
         {/* LEETCODE */}
-        <section className="mt-12 scroll-mt-20">
+        <section id="leetcode" className="mt-12 scroll-mt-20">
           <SectionTitle
             eyebrow="01 / Activity"
             title="Coding Profile"
@@ -898,10 +866,10 @@ export default function MobilePortfolio() {
         </section>
 
         {/* CONTACT */}
-        <section className="mt-16 border-t border-white/5 pt-12">
+        <section id="contact" className="mt-16 border-t border-white/5 pt-12 scroll-mt-20">
           <GlassCard className="p-6 text-center">
             <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-blue-400">
-              Let's Connect
+              Let&apos;s Connect
             </p>
 
             <h2 className="mt-2 text-2xl font-bold text-white">
@@ -914,7 +882,7 @@ export default function MobilePortfolio() {
             </p>
 
             <a
-              href="mailto:anirudhmahendra2006@gmail.com"
+              href={`mailto:${personalInfo.email}`}
               className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-xs font-semibold text-white shadow-lg shadow-blue-900/20"
             >
               Start a Conversation
@@ -925,7 +893,7 @@ export default function MobilePortfolio() {
         {/* FOOTER */}
         <footer className="mt-12 border-t border-white/5 pt-6 text-center">
           <p className="text-[9px] font-mono text-slate-600">
-            © {new Date().getFullYear()} Madari Anirudh
+            © {new Date().getFullYear()} {personalInfo.name}
           </p>
 
           <p className="mt-1 text-[9px] font-mono text-slate-700">
@@ -934,14 +902,15 @@ export default function MobilePortfolio() {
         </footer>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-slate-950/85 px-3 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-2xl">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+      {/* Bottom Navigation Taskbar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/90 px-3 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-2xl shadow-2xl shadow-black/80">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {[
             { id: "home", label: "Home", icon: "⌂" },
+            { id: "leetcode", label: "Code", icon: "⚡" },
             { id: "skills", label: "Skills", icon: "◇" },
             { id: "projects", label: "Projects", icon: "▣" },
-            { id: "education", label: "Education", icon: "◎" },
+            { id: "contact", label: "Contact", icon: "✉" },
           ].map((item) => {
             const active = activeSection === item.id;
 
@@ -950,15 +919,22 @@ export default function MobilePortfolio() {
                 key={item.id}
                 type="button"
                 onClick={() => scrollTo(item.id)}
-                className={`flex flex-col items-center gap-0.5 py-1.5 transition-colors ${
-                  active ? "text-blue-400" : "text-slate-600"
+                className={`relative flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  active ? "text-blue-400 font-semibold" : "text-slate-500 hover:text-slate-300"
                 }`}
               >
-                <span className="text-base leading-none">
+                {active && (
+                  <motion.span
+                    layoutId="activeMobileNav"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="absolute inset-0 rounded-xl bg-blue-500/15 border border-blue-500/30"
+                  />
+                )}
+                <span className="relative z-10 text-base leading-none">
                   {item.icon}
                 </span>
 
-                <span className="text-[8px] font-mono">
+                <span className="relative z-10 text-[9px] font-mono">
                   {item.label}
                 </span>
               </button>

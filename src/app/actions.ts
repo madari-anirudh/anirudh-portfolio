@@ -1,16 +1,32 @@
 "use server";
 
-interface LeetCodeBadge {
+interface RawSubmissionEntry {
+  difficulty: string;
+  count?: number;
+  submissions?: number;
+}
+
+interface RawBadgeEntry {
+  name?: string | null;
+  icon?: string | null;
+}
+
+interface RawLanguageEntry {
+  languageName?: string | null;
+  problemsSolved?: number | null;
+}
+
+export interface LeetCodeBadge {
   name: string;
   icon: string;
 }
 
-interface LeetCodeLanguage {
+export interface LeetCodeLanguage {
   languageName: string;
   problemsSolved: number;
 }
 
-interface LeetCodeResult {
+export interface LeetCodeResult {
   status: "success" | "error";
   totalSolved: number;
   easySolved: number;
@@ -91,7 +107,8 @@ export async function getLeetCodeStats(
           username,
         },
       }),
-      cache: "no-store",
+      // Revalidate every hour to stay fresh without hammering LeetCode's API
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) {
@@ -100,12 +117,6 @@ export async function getLeetCodeStats(
     }
 
     const json = await response.json();
-
-    console.log("LEETCODE GRAPHQL RESPONSE:", {
-      hasData: Boolean(json?.data),
-      hasMatchedUser: Boolean(json?.data?.matchedUser),
-      errors: json?.errors ?? null,
-    });
 
     if (json?.errors || !json?.data?.matchedUser) {
       console.error("LEETCODE GRAPHQL ERROR:", json?.errors);
@@ -118,13 +129,13 @@ export async function getLeetCodeStats(
     // SAFE PROBLEM COUNTS
     // -----------------------------
 
-    const acceptedStats = Array.isArray(
+    const acceptedStats: RawSubmissionEntry[] = Array.isArray(
       user?.submitStats?.acSubmissionNum
     )
       ? user.submitStats.acSubmissionNum
       : [];
 
-    const submissionStats = Array.isArray(
+    const submissionStats: RawSubmissionEntry[] = Array.isArray(
       user?.submitStats?.totalSubmissionNum
     )
       ? user.submitStats.totalSubmissionNum
@@ -132,7 +143,7 @@ export async function getLeetCodeStats(
 
     const getSolved = (difficulty: string): number => {
       const item = acceptedStats.find(
-        (entry: any) => entry?.difficulty === difficulty
+        (entry: RawSubmissionEntry) => entry?.difficulty === difficulty
       );
 
       return Number(item?.count ?? 0);
@@ -140,7 +151,7 @@ export async function getLeetCodeStats(
 
     const getSubmissions = (): number => {
       const item = submissionStats.find(
-        (entry: any) => entry?.difficulty === "All"
+        (entry: RawSubmissionEntry) => entry?.difficulty === "All"
       );
 
       return Number(item?.submissions ?? 0);
@@ -194,10 +205,6 @@ export async function getLeetCodeStats(
       }
     } catch (streakError) {
       console.error("LEETCODE STREAK ERROR:", streakError);
-
-      // Important:
-      // A streak failure should NOT destroy the entire
-      // LeetCode statistics card.
       activeStreak = 0;
     }
 
@@ -206,14 +213,12 @@ export async function getLeetCodeStats(
     // -----------------------------
 
     const badges: LeetCodeBadge[] = Array.isArray(user?.badges)
-      ? user.badges
+      ? (user.badges as RawBadgeEntry[])
           .filter(
-            (badge: any) =>
-              badge &&
-              typeof badge.name === "string" &&
-              typeof badge.icon === "string"
+            (badge): badge is { name: string; icon: string } =>
+              Boolean(badge && typeof badge.name === "string" && typeof badge.icon === "string")
           )
-          .map((badge: any) => ({
+          .map((badge) => ({
             name: badge.name,
             icon: badge.icon,
           }))
@@ -226,15 +231,14 @@ export async function getLeetCodeStats(
     const languages: LeetCodeLanguage[] = Array.isArray(
       user?.languageProblemCount
     )
-      ? user.languageProblemCount
+      ? (user.languageProblemCount as RawLanguageEntry[])
           .filter(
-            (language: any) =>
-              language &&
-              typeof language.languageName === "string"
+            (lang): lang is { languageName: string; problemsSolved: number } =>
+              Boolean(lang && typeof lang.languageName === "string")
           )
-          .map((language: any) => ({
-            languageName: language.languageName,
-            problemsSolved: Number(language.problemsSolved ?? 0),
+          .map((lang) => ({
+            languageName: lang.languageName,
+            problemsSolved: Number(lang.problemsSolved ?? 0),
           }))
       : [];
 
@@ -244,39 +248,20 @@ export async function getLeetCodeStats(
 
     const result: LeetCodeResult = {
       status: "success",
-
       totalSolved: getSolved("All"),
       easySolved: getSolved("Easy"),
       mediumSolved: getSolved("Medium"),
       hardSolved: getSolved("Hard"),
-
       totalSubmissions: getSubmissions(),
-
       ranking: Number(user?.profile?.ranking ?? 0),
-
       streak: activeStreak,
-
       badges,
-
       languages,
     };
-
-    console.log("LEETCODE FINAL DATA:", {
-      totalSolved: result.totalSolved,
-      easySolved: result.easySolved,
-      mediumSolved: result.mediumSolved,
-      hardSolved: result.hardSolved,
-      ranking: result.ranking,
-      streak: result.streak,
-      submissions: result.totalSubmissions,
-      badges: result.badges.length,
-      languages: result.languages.length,
-    });
 
     return result;
   } catch (error) {
     console.error("LEETCODE PROCESSING ERROR:", error);
-
     return fallbackData;
   }
 }
